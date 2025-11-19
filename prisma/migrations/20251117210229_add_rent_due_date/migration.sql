@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Lease" ADD COLUMN     "rentDueDate" INTEGER NOT NULL DEFAULT 1;

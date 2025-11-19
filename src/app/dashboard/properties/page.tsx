@@ -51,8 +51,12 @@ export default function PropertiesPage() {
         <LogoutButton />
       </div>
       <div className="p-4">
-        <h1 className="text-2xl text-purple-900 font-bold mb-4">My Properties</h1>
-
+        <div className="flex justify-between"><h1 className="text-2xl text-purple-900 font-bold mb-4">
+          My Properties
+        </h1>
+        <button className="mb-6 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+          <Link href="/dashboard/properties/add">Add New Property</Link>
+        </button></div>
         {properties.length === 0 ? (
           <p className="text-gray-500">No properties found.</p>
         ) : (
@@ -62,7 +66,9 @@ export default function PropertiesPage() {
                 key={property.id}
                 className="p-4 bg-white shadow rounded-md border border-gray-200"
               >
-                <h2 className="text-lg text-purple-900 font-semibold">{property.name}</h2>
+                <h2 className="text-lg text-purple-900 font-semibold">
+                  {property.name}
+                </h2>
                 <p className="text-sm text-gray-600">{property.address}</p>
                 <p className="text-xs text-gray-400">
                   Added on {new Date(property.createdAt).toLocaleDateString()}

@@ -41,17 +41,6 @@ model User {
   updatedAt  DateTime    @updatedAt
 }
 
-// model User {
-//   id         String     @id @default(uuid())
-//   email      String     @unique
-//   name       String?
-//   password   String
-//   role       Role       @default(USER)
-//   properties Property[] @relation("OwnerProperties")
-//   createdAt  DateTime   @default(now())
-//   updatedAt  DateTime   @updatedAt
-// }
-
 model Property {
   id        String   @id @default(uuid())
   name      String
@@ -76,18 +65,19 @@ model Room {
 
 // ✅ Update Lease model
 model Lease {
-  id         String      @id @default(uuid())
-  tenant     User        @relation("TenantLeases", fields: [tenantId], references: [id])
-  tenantId   String
-  room       Room        @relation(fields: [roomId], references: [id])
-  roomId     String
-  startDate  DateTime
-  endDate    DateTime
-  rent       Decimal     @db.Decimal(10, 2)
-  payments   Payment[]
-  workOrders WorkOrder[]
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id          String      @id @default(uuid())
+  tenant      User        @relation("TenantLeases", fields: [tenantId], references: [id])
+  tenantId    String
+  room        Room        @relation(fields: [roomId], references: [id])
+  roomId      String
+  startDate   DateTime
+  endDate     DateTime
+  rent        Decimal     @db.Decimal(10, 2)
+  rentDueDate Int         @default(1) // 🆕 Day of month rent is due
+  payments    Payment[]
+  workOrders  WorkOrder[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 }
 
 model Payment {
@@ -121,14 +111,3 @@ model WorkOrder {
   updatedAt   DateTime        @updatedAt
   resolvedAt  DateTime?
 }
-
-// model Tenant {
-//   id        String   @id @default(uuid())
-//   firstName String
-//   lastName  String
-//   email     String   @unique
-//   phone     String?
-//   leases    Lease[]
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
-// }

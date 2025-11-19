@@ -3,12 +3,15 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { set } from "zod/v4";
 
 export default function AuthForm() {
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [role, setRole] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -18,49 +21,65 @@ export default function AuthForm() {
     setLoading(true);
     setError(null);
 
+    if (isRegister && !role) {
+      setError("Please select at least one role.");
+      setLoading(false);
+      return;
+    }
     try {
+      setError(null); // clear previous errors
+
       if (isRegister) {
+        // 1️⃣ Register user
         const res = await fetch("/api/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password, name }),
+          body: JSON.stringify({ email, password, name, phone, role }),
         });
 
         const data = await res.json();
 
         if (!res.ok) {
           setError(data.error || "Registration failed");
+          setLoading(false);
           return;
         }
 
-        // Auto-login after successful registration
-        const loginRes = await signIn("credentials", {
-          email,
-          password,
-          redirect: false,
-        });
+        // // 2️⃣ Auto-login after registration
+        // const loginRes = await signIn("credentials", {
+        //   email,
+        //   password,
+        //   redirect: false,
+        // });
 
-        if (loginRes?.ok) {
-          router.push("/"); // Redirect to home/dashboard
-        } else {
-          setError("Auto-login failed. Try logging in manually.");
-        }
-      } else {
-        const loginRes = await signIn("credentials", {
-          email,
-          password,
-          redirect: false,
-        });
+        // if (!loginRes || !loginRes.ok) {
+        //   setError("Auto-login failed. Please log in manually.");
+        //   return;
+        // }
 
-        if (loginRes?.ok) {
-          router.push("/dashboard/properties"); // Redirect to dashboard
-        } else {
-          setError("Invalid credentials");
-        }
+        // 3️⃣ Redirect new user to login
+          router.refresh();
+       
+        return;
       }
-    } catch (err: any) {
-      setError("Something went wrong");
-    } finally {
+
+      // 4️⃣ Regular Login Flow
+      const loginRes = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (!loginRes || !loginRes.ok) {
+        setError("Invalid credentials");
+        setLoading(false);
+        return;
+      }
+
+      router.push("/dashboard/properties");
+    } catch (err) {
+      console.error("Error:", err);
+      setError("Something went wrong. Try again.");
       setLoading(false);
     }
   };
@@ -77,7 +96,17 @@ export default function AuthForm() {
             placeholder="Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full border text-slate-600 p-2 rounded"
+            className="w-full border focus:border-2 focus:border-purple-900 focus:outline-none p-2 text-purple-600 rounded"
+            required
+          />
+        )}
+        {isRegister && (
+          <input
+            type="text"
+            placeholder="Phone Number"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="w-full border focus:border-2 focus:border-purple-900 focus:outline-none p-2 text-purple-600 rounded"
             required
           />
         )}
@@ -99,6 +128,36 @@ export default function AuthForm() {
         />
 
         {error && <p className="text-red-500 text-sm">{error}</p>}
+        {isRegister && (
+          <>
+            {/* Role Selection */}
+            <div className="flex items-center gap-4 my-2">
+              <label className="flex items-center gap-2 text-slate-600">
+                <input
+                  type="radio"
+                  name="role"
+                  value="OWNER"
+                  checked={role === "OWNER"}
+                  onChange={(e) => setRole(e.target.value)}
+                  className="accent-purple-600"
+                />
+                Owner
+              </label>
+
+              <label className="flex items-center gap-2 text-slate-600">
+                <input
+                  type="radio"
+                  name="role"
+                  value="TENANT"
+                  checked={role === "TENANT"}
+                  onChange={(e) => setRole(e.target.value)}
+                  className="accent-purple-600"
+                />
+                Tenant
+              </label>
+            </div>
+          </>
+        )}
 
         <button
           type="submit"
@@ -113,7 +172,9 @@ export default function AuthForm() {
         {isRegister ? "Already have an account?" : "Don't have an account?"}{" "}
         <button
           type="button"
-          onClick={() => setIsRegister(!isRegister)}
+          onClick={() => {
+            setIsRegister(!isRegister), setError(null);
+          }}
           className=" cursor-pointer text-purple-400 hover:underline"
         >
           {isRegister ? "Login" : "Register"}
