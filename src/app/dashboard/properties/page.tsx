@@ -1,18 +1,35 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import LogoutButton from "@/components/LogoutButton";
+import { Plus, ChevronDown } from "lucide-react";
+import RoomCard from "./RoomCard";
+
+type Lease = {
+  id: string;
+  tenantId: string;
+  startDate: string;
+  endDate: string;
+};
+
+type Room = {
+  id: string;
+  name: string;
+  description?: string | null;
+  leases: Lease[];
+};
 
 type Property = {
   id: string;
   name: string;
   address: string;
   createdAt: string;
+  rooms?: Room[];
 };
 
 export default function PropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([]);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,49 +59,98 @@ export default function PropertiesPage() {
     fetchProperties();
   }, []);
 
-  if (loading) return <p className="p-6 text-gray-500">Loading...</p>;
-  if (error) return <p className="p-6 text-red-500">Error: {error}</p>;
+  if (loading) return <p className="text-gray-500">Loading...</p>;
+  if (error) return <p className="text-red-500">Error: {error}</p>;
 
   return (
-    <div className="flex flex-col justify-between p-6 space-y-8 bg-gray-100">
-      <div className="flex justify-end">
-        <LogoutButton />
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">My Properties</h1>
+          <p className="text-gray-600 mt-1">
+            Manage and view all your rental properties
+          </p>
+        </div>
+        <Link
+          href="/dashboard/properties/add"
+          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center space-x-2 w-fit"
+        >
+          <Plus size={20} />
+          <span>Add New Property</span>
+        </Link>
       </div>
-      <div className="p-4">
-        <div className="flex justify-between"><h1 className="text-2xl text-purple-900 font-bold mb-4">
-          My Properties
-        </h1>
-        <button className="mb-6 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
-          <Link href="/dashboard/properties/add">Add New Property</Link>
-        </button></div>
-        {properties.length === 0 ? (
-          <p className="text-gray-500">No properties found.</p>
-        ) : (
-          <ul className="space-y-4">
-            {properties.map((property) => (
-              <li
-                key={property.id}
-                className="p-4 bg-white shadow rounded-md border border-gray-200"
-              >
-                <h2 className="text-lg text-purple-900 font-semibold">
-                  {property.name}
-                </h2>
-                <p className="text-sm text-gray-600">{property.address}</p>
-                <p className="text-xs text-gray-400">
-                  Added on {new Date(property.createdAt).toLocaleDateString()}
-                </p>
 
-                <Link
-                  href={`/dashboard/properties/${property.id}`}
-                  className="text-purple-500 text-sm hover:underline mt-2 inline-block"
-                >
-                  View Details
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      {properties.length === 0 ? (
+        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+          <p className="text-gray-500 text-lg">No properties found.</p>
+          <Link
+            href="/dashboard/properties/add"
+            className="text-purple-600 hover:underline mt-2 inline-block"
+          >
+            Create your first property
+          </Link>
+        </div>
+      ) : (
+        <ul className="space-y-4">
+          {properties.map((property) => (
+            <li
+              key={property.id}
+              className="p-6 bg-white shadow-sm rounded-lg border border-gray-200"
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-xl text-purple-900 font-semibold">
+                    {property.name}
+                  </h2>
+                  <p className="text-sm text-gray-600">{property.address}</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Added on {new Date(property.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <Link
+                    href={`/dashboard/properties/${property.id}`}
+                    className="text-purple-600 text-sm hover:underline"
+                  >
+                    View Details
+                  </Link>
+
+                  <button
+                    aria-expanded={!!expanded[property.id]}
+                    onClick={() =>
+                      setExpanded((s) => ({
+                        ...s,
+                        [property.id]: !s[property.id],
+                      }))
+                    }
+                    className="p-2 rounded hover:bg-gray-100"
+                    title={expanded[property.id] ? "Hide rooms" : "Show rooms"}
+                  >
+                    <ChevronDown
+                      size={20}
+                      className={`transform transition-transform duration-150 ${
+                        expanded[property.id] ? "rotate-180" : "rotate-0"
+                      } text-gray-600`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              {expanded[property.id] && (
+                <div className="mt-4 space-y-2">
+                  {(property.rooms || []).map((room) => (
+                    <RoomCard key={room.id} room={room} />
+                  ))}
+                  {(!property.rooms || property.rooms.length === 0) && (
+                    <p className="text-sm text-gray-500">No rooms yet.</p>
+                  )}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
