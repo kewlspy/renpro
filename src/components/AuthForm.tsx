@@ -58,8 +58,8 @@ export default function AuthForm() {
         // }
 
         // 3️⃣ Redirect new user to login
-          router.refresh();
-       
+        router.refresh();
+
         return;
       }
 
@@ -76,7 +76,7 @@ export default function AuthForm() {
         return;
       }
 
-      router.push("/dashboard/properties");
+      router.push("/dashboard");
     } catch (err) {
       console.error("Error:", err);
       setError("Something went wrong. Try again.");

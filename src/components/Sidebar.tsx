@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Building2,
+  FileText,
   CreditCard,
   Wrench,
   BarChart3,
@@ -14,6 +15,7 @@ import {
 const menuItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "My Properties", href: "/dashboard/properties", icon: Building2 },
+  { name: "Leases", href: "/dashboard/leases", icon: FileText },
   { name: "Payments", href: "/dashboard/payments", icon: CreditCard },
   { name: "Maintenance", href: "/dashboard/maintenance", icon: Wrench },
   { name: "Reports", href: "/dashboard/reports", icon: BarChart3 },
@@ -37,7 +39,7 @@ export default function Sidebar({
   const desktop = (
     <aside
       className={`hidden sm:block bg-gray-50 border-r border-gray-200 p-6 h-screen overflow-y-auto transition-all duration-200 ${
-        collapsed ? "w-20" : "w-64"
+        collapsed ? "w-24" : "w-64"
       }`}
     >
       <nav className="space-y-2">
@@ -57,7 +59,7 @@ export default function Sidebar({
                     : "text-gray-700 hover:bg-gray-100"
                 }`}
               >
-                <Icon size={20} />
+                <Icon size={collapsed ? 20 : 20} />
                 {!collapsed && <span className="font-medium">{item.name}</span>}
               </div>
             </Link>

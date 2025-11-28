@@ -23,7 +23,7 @@ export default function DashboardLayout({
 
       <div
         className={`flex-1 ml-0 ${
-          collapsed ? "sm:ml-20" : "sm:ml-64"
+          collapsed ? "sm:ml-0" : "sm:ml-0"
         } flex flex-col`}
       >
         <TopNav

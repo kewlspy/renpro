@@ -26,17 +26,19 @@ enum MaintenanceStatus {
   CLOSED
 }
 
-// ✅ Update User model to include leases
+// ? Update User model to include leases
 model User {
   id         String      @id @default(uuid())
   email      String      @unique
   name       String
   password   String
-  phone      String // 📞 Added phone field
+  phone      String // ?? Added phone field
+  city       String? // ?? Added city field
+  country    String?
   role       Role        @default(OWNER)
   properties Property[]  @relation("OwnerProperties")
   leases     Lease[]     @relation("TenantLeases")
-  workOrders WorkOrder[] // 🆕 One-to-many relationship with WorkOrder
+  workOrders WorkOrder[] // ?? One-to-many relationship with WorkOrder
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 }
@@ -45,9 +47,11 @@ model Property {
   id        String   @id @default(uuid())
   name      String
   address   String
+  city      String?  // Optional: property's city
+  country   String?  // Optional: property's country
   owner     User     @relation("OwnerProperties", fields: [ownerId], references: [id])
   ownerId   String
-  rooms     Room[] // 🆕 One-to-many relationship
+  rooms     Room[] // ?? One-to-many relationship
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -63,7 +67,7 @@ model Room {
   updatedAt   DateTime @updatedAt
 }
 
-// ✅ Update Lease model
+// ? Update Lease model
 model Lease {
   id          String      @id @default(uuid())
   tenant      User        @relation("TenantLeases", fields: [tenantId], references: [id])
@@ -73,7 +77,7 @@ model Lease {
   startDate   DateTime
   endDate     DateTime
   rent        Decimal     @db.Decimal(10, 2)
-  rentDueDate Int         @default(1) // 🆕 Day of month rent is due
+  rentDueDate Int         @default(1) // ?? Day of month rent is due
   payments    Payment[]
   workOrders  WorkOrder[]
   createdAt   DateTime    @default(now())

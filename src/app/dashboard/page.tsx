@@ -39,6 +39,7 @@ export default function DashboardPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [leases, setLeases] = useState<Lease[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [pendingList, setPendingList] = useState<any[]>([]);
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +64,10 @@ export default function DashboardPage() {
             cache: "no-store",
             credentials: "include",
           }),
+          fetch("/api/payments/pending", {
+            cache: "no-store",
+            credentials: "include",
+          }),
         ]);
 
         if (propsRes.ok) {
@@ -78,6 +83,20 @@ export default function DashboardPage() {
         if (paymentsRes.ok) {
           const paymentsData = await paymentsRes.json();
           setPayments(Array.isArray(paymentsData) ? paymentsData : []);
+        }
+
+        // pending payments
+        try {
+          const pendingRes = await fetch("/api/payments/pending", {
+            cache: "no-store",
+            credentials: "include",
+          });
+          if (pendingRes.ok) {
+            const data = await pendingRes.json();
+            setPendingList(Array.isArray(data) ? data : []);
+          }
+        } catch (err) {
+          console.warn("Failed to fetch pending payments", err);
         }
 
         if (woRes.ok) {
@@ -97,11 +116,7 @@ export default function DashboardPage() {
 
   // Calculate metrics
   const totalProperties = properties.length;
-  const pendingPayments = payments.filter((p) => {
-    const paidDate = new Date(p.paidAt);
-    const today = new Date();
-    return paidDate > today;
-  }).length;
+  const pendingPayments = pendingList.length;
   const newMaintenance = workOrders.filter(
     (wo) => wo.status === "PENDING"
   ).length;
@@ -158,20 +173,21 @@ export default function DashboardPage() {
             {
               key: "tenantName" as any,
               label: "Tenant",
-              render: (_, row: Payment) => row.lease?.tenant?.name || "Unknown",
+              render: (_, row: any) => row.tenant?.name || "Unknown",
             },
             {
               key: "propertyId" as any,
               label: "Property",
-              render: (_, row: Payment) => row.lease?.id || "Unknown Property",
+              render: (_, row: any) => row.property?.name || "Unknown Property",
             },
             {
               key: "amount",
               label: "Amount",
-              render: (value) => `$${Number(value).toFixed(2)}`,
+              render: (_, row: any) =>
+                `$${Number(row.pending || 0).toFixed(2)}`,
             },
           ]}
-          data={payments}
+          data={pendingList}
           emptyMessage="No pending payments"
         />
       </div>

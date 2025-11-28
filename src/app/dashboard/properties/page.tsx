@@ -32,13 +32,28 @@ export default function PropertiesPage() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [propertyLeaseModal, setPropertyLeaseModal] = useState<{
+    propertyId: string;
+    propertyName: string;
+  } | null>(null);
+  const [tenants, setTenants] = useState<Array<any>>([]);
+  const [filteredTenants, setFilteredTenants] = useState<Array<any>>([]);
+  const [phoneSearch, setPhoneSearch] = useState("");
+  const [form, setForm] = useState({
+    tenantId: "",
+    startDate: "",
+    endDate: "",
+    rent: "",
+    rentDueDate: "1",
+  });
+  const [leaseLoading, setLeaseLoading] = useState(false);
 
   useEffect(() => {
     const fetchProperties = async () => {
       try {
         const res = await fetch("/api/properties", {
           cache: "no-store",
-          credentials: "include", // ✅ include NextAuth cookies
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
         });
 
@@ -58,6 +73,98 @@ export default function PropertiesPage() {
 
     fetchProperties();
   }, []);
+
+  const fetchTenants = async (phone: string = "") => {
+    setLeaseLoading(true);
+    try {
+      const url = new URL("/api/tenants", window.location.origin);
+      if (phone) url.searchParams.set("phone", phone);
+      const res = await fetch(url.toString());
+      const data = await res.json();
+      setTenants(data || []);
+      setFilteredTenants(data || []);
+    } catch (err) {
+      setTenants([]);
+      setFilteredTenants([]);
+    } finally {
+      setLeaseLoading(false);
+    }
+  };
+
+  const handlePhoneSearch = (phone: string) => {
+    setPhoneSearch(phone);
+    if (phone.trim()) {
+      fetchTenants(phone);
+    } else {
+      setFilteredTenants(tenants);
+    }
+  };
+
+  const openPropertyLeaseModal = (propertyId: string, propertyName: string) => {
+    setPropertyLeaseModal({ propertyId, propertyName });
+    setPhoneSearch("");
+    setForm({
+      tenantId: "",
+      startDate: "",
+      endDate: "",
+      rent: "",
+      rentDueDate: "1",
+    });
+    fetchTenants();
+  };
+
+  const closePropertyLeaseModal = () => {
+    setPropertyLeaseModal(null);
+    setPhoneSearch("");
+    setForm({
+      tenantId: "",
+      startDate: "",
+      endDate: "",
+      rent: "",
+      rentDueDate: "1",
+    });
+  };
+
+  const handleCreatePropertyLease = async () => {
+    if (
+      !propertyLeaseModal ||
+      !form.tenantId ||
+      !form.startDate ||
+      !form.endDate ||
+      !form.rent
+    ) {
+      alert("Please fill all fields");
+      return;
+    }
+
+    setLeaseLoading(true);
+    try {
+      const res = await fetch("/api/leases", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          propertyId: propertyLeaseModal.propertyId,
+          tenantId: form.tenantId,
+          startDate: form.startDate,
+          endDate: form.endDate,
+          rent: form.rent,
+          rentDueDate: Number(form.rentDueDate),
+        }),
+      });
+
+      if (res.ok) {
+        closePropertyLeaseModal();
+        window.location.reload();
+      } else {
+        const err = await res.json();
+        alert(err?.message || "Failed to create lease");
+      }
+    } catch (err) {
+      alert("Error creating lease");
+    } finally {
+      setLeaseLoading(false);
+    }
+  };
 
   if (loading) return <p className="text-gray-500">Loading...</p>;
   if (error) return <p className="text-red-500">Error: {error}</p>;
@@ -109,6 +216,15 @@ export default function PropertiesPage() {
                 </div>
 
                 <div className="flex items-center space-x-3">
+                  <button
+                    onClick={() =>
+                      openPropertyLeaseModal(property.id, property.name)
+                    }
+                    className="px-3 py-1 bg-green-600 text-white rounded-md text-sm hover:bg-green-700"
+                  >
+                    Lease Property
+                  </button>
+
                   <Link
                     href={`/dashboard/properties/${property.id}`}
                     className="text-purple-600 text-sm hover:underline"
@@ -150,6 +266,129 @@ export default function PropertiesPage() {
             </li>
           ))}
         </ul>
+      )}
+
+      {/* Property Lease Modal */}
+      {propertyLeaseModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={closePropertyLeaseModal}
+          />
+          <div className="bg-white rounded-lg shadow-lg p-6 z-10 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">
+              Create Lease for {propertyLeaseModal.propertyName}
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">
+                  Search Tenant by Phone
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter phone number"
+                  className="w-full border rounded px-3 py-2 text-sm"
+                  value={phoneSearch}
+                  onChange={(e) => handlePhoneSearch(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">
+                  Select Tenant
+                </label>
+                <select
+                  className="w-full border rounded px-3 py-2 text-sm"
+                  value={form.tenantId}
+                  onChange={(e) =>
+                    setForm({ ...form, tenantId: e.target.value })
+                  }
+                  disabled={leaseLoading}
+                >
+                  <option value="">
+                    {leaseLoading ? "Loading..." : "Select tenant"}
+                  </option>
+                  {filteredTenants.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name || t.email} {t.phone ? `(${t.phone})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-3 py-2 text-sm"
+                  value={form.startDate}
+                  onChange={(e) =>
+                    setForm({ ...form, startDate: e.target.value })
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-3 py-2 text-sm"
+                  value={form.endDate}
+                  onChange={(e) =>
+                    setForm({ ...form, endDate: e.target.value })
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">Rent</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="w-full border rounded px-3 py-2 text-sm"
+                  value={form.rent}
+                  onChange={(e) => setForm({ ...form, rent: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">
+                  Rent Due Day
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={28}
+                  className="w-full border rounded px-3 py-2 text-sm"
+                  value={form.rentDueDate}
+                  onChange={(e) =>
+                    setForm({ ...form, rentDueDate: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-3">
+                <button
+                  onClick={closePropertyLeaseModal}
+                  className="px-4 py-2 border rounded hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreatePropertyLease}
+                  disabled={leaseLoading}
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                >
+                  {leaseLoading ? "Creating..." : "Create"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
